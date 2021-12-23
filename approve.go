@@ -7,10 +7,10 @@ import (
 
 	sdk "github.com/opensourceways/go-gitee/gitee"
 	"github.com/sirupsen/logrus"
-	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/github"
 
 	"github.com/opensourceways/robot-gitee-approve/approve"
+	"github.com/opensourceways/robot-gitee-approve/approve/config"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 func (bot *robot) handle(org, repo string, pr *sdk.PullRequestHook, cfg *botConfig, log *logrus.Entry) error {
 	c := transformConfig(cfg)
-	oc := newOwnersClient(&bot.cacheCli, log, org, repo, pr.GetBase().GetRef())
+	oc := newOwnersClient(bot.cacheCli, log, org, repo, pr.GetBase().GetRef())
 	ghc := newGHClient(bot.cli)
 	assignees := make([]github.User, 0, len(pr.Assignees))
 

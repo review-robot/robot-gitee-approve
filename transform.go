@@ -5,7 +5,8 @@ import (
 
 	sdk "github.com/opensourceways/go-gitee/gitee"
 	"k8s.io/test-infra/prow/github"
-	"k8s.io/test-infra/prow/plugins"
+
+	"github.com/opensourceways/robot-gitee-approve/approve/plugins"
 )
 
 func transformPRChanges(changes []sdk.PullRequestFiles) []github.PullRequestChange {

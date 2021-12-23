@@ -23,13 +23,13 @@ type iClient interface {
 	RemovePRLabel(org, repo string, number int32, label string) error
 }
 
-func newRobot(cli iClient, cacheCli client.Client) *robot {
+func newRobot(cli iClient, cacheCli *client.Client) *robot {
 	return &robot{cli: cli, cacheCli: cacheCli}
 }
 
 type robot struct {
 	cli      iClient
-	cacheCli client.Client
+	cacheCli *client.Client
 }
 
 func (bot *robot) NewConfig() config.Config {
