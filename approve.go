@@ -19,8 +19,12 @@ const (
 )
 
 func (bot *robot) handle(org, repo string, pr *sdk.PullRequestHook, cfg *botConfig, log *logrus.Entry) error {
+	oc, err := bot.cacheCli.LoadRepoOwners(org, repo, pr.GetBase().GetRef())
+	if err != nil {
+		return err
+	}
+
 	c := transformConfig(cfg)
-	oc := newOwnersClient(bot.cacheCli, log, org, repo, pr.GetBase().GetRef())
 	ghc := newGHClient(bot.cli)
 	assignees := make([]github.User, 0, len(pr.Assignees))
 
@@ -47,7 +51,7 @@ func (bot *robot) authorIsRobot(author string) (bool, error) {
 		return false, err
 	}
 
-	return b.Name == author, err
+	return b.Login == author, err
 }
 
 func isApproveCommand(comment string, lgtmActsAsApprove bool) bool {

@@ -37,6 +37,10 @@ const (
 	ApprovalNotificationName = "ApprovalNotifier"
 )
 
+type RepoOwners interface {
+	LoadRepoOwners(org, repo, base string) (Repo, error)
+}
+
 type Repo interface {
 	Approvers(path string) sets.String
 	LeafApprovers(path string) sets.String

@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
-
 	"github.com/opensourceways/repo-owners-cache/grpc/client"
-	"github.com/opensourceways/repo-owners-cache/protocol"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/sets"
+	"github.com/opensourceways/repo-owners-cache/repoowners"
 	"k8s.io/test-infra/prow/github"
+
+	"github.com/opensourceways/robot-gitee-approve/approve/approvers"
 )
 
 type ghclient struct {
@@ -85,67 +83,23 @@ func newGHClient(cli iClient) *ghclient {
 	return &ghclient{cli: cli}
 }
 
-type ownersClient struct {
+type RepoOwnersClient struct {
 	cli *client.Client
-	log *logrus.Entry
-
-	org    string
-	repo   string
-	branch string
 }
 
-func (oc *ownersClient) genRepoFilePathParam(path string) *protocol.RepoFilePath {
-	return &protocol.RepoFilePath{
-		Branch: &protocol.Branch{
+func (ro *RepoOwnersClient) LoadRepoOwners(org, repo, base string) (approvers.Repo, error) {
+	return repoowners.NewRepoOwners(
+		repoowners.RepoBranch{
 			Platform: "gitee",
-			Org:      oc.org,
-			Repo:     oc.org,
-			Branch:   oc.branch,
-		},
-		File: path,
+			Org:      org,
+			Repo:     repo,
+			Branch:   base,
+		}, ro.cli,
+	)
+}
+
+func newRepoOwnersClient(cli *client.Client) *RepoOwnersClient {
+	return &RepoOwnersClient{
+		cli: cli,
 	}
-}
-
-func (oc *ownersClient) Approvers(path string) sets.String {
-	res := sets.NewString()
-
-	o, err := oc.cli.Approvers(context.Background(), oc.genRepoFilePathParam(path))
-	if err != nil {
-		oc.log.Error(err)
-		return res
-	}
-
-	return res.Insert(o.GetOwners()...)
-}
-
-func (oc *ownersClient) LeafApprovers(path string) sets.String {
-	res := sets.NewString()
-
-	o, err := oc.cli.LeafApprovers(context.Background(), oc.genRepoFilePathParam(path))
-	if err != nil {
-		oc.log.Error(err)
-
-		return res
-	}
-
-	return res.Insert(o.GetOwners()...)
-}
-func (oc *ownersClient) FindApproverOwnersForFile(file string) string {
-	p, err := oc.cli.FindApproverOwnersForFile(context.Background(), oc.genRepoFilePathParam(file))
-	if err != nil {
-		oc.log.Error(err)
-
-		return ""
-	}
-
-	return p.GetPath()
-}
-
-func (oc *ownersClient) IsNoParentOwners(path string) bool {
-	// TODO: need upstream export grpc api
-	return false
-}
-
-func newOwnersClient(cli *client.Client, log *logrus.Entry, org, repo, branch string, ) *ownersClient {
-	return &ownersClient{cli: cli, log: log, org: org, repo: repo, branch: branch}
 }

@@ -8,6 +8,8 @@ import (
 	sdk "github.com/opensourceways/go-gitee/gitee"
 	"github.com/opensourceways/repo-owners-cache/grpc/client"
 	"github.com/sirupsen/logrus"
+
+	"github.com/opensourceways/robot-gitee-approve/approve/approvers"
 )
 
 const botName = "approve"
@@ -24,12 +26,12 @@ type iClient interface {
 }
 
 func newRobot(cli iClient, cacheCli *client.Client) *robot {
-	return &robot{cli: cli, cacheCli: cacheCli}
+	return &robot{cli: cli, cacheCli: newRepoOwnersClient(cacheCli)}
 }
 
 type robot struct {
 	cli      iClient
-	cacheCli *client.Client
+	cacheCli approvers.RepoOwners
 }
 
 func (bot *robot) NewConfig() config.Config {
