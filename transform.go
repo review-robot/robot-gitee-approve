@@ -71,18 +71,10 @@ func transformUser(user *sdk.UserBasic) github.User {
 	}
 }
 
-func transformConfig(cfg *botConfig) *plugins.Approve {
-	if cfg == nil {
-		return new(plugins.Approve)
-	}
-
-	return &plugins.Approve{
-		Repos:                         cfg.Repos,
-		IssueRequired:                 cfg.IssueRequired,
-		RequireSelfApproval:           cfg.RequireSelfApproval,
-		LgtmActsAsApprove:             cfg.LgtmActsAsApprove,
-		IgnoreReviewState:             cfg.IgnoreReviewState,
-		DeprecatedImplicitSelfApprove: cfg.DeprecatedImplicitSelfApprove,
-		DeprecatedReviewActsAsApprove: cfg.DeprecatedReviewActsAsApprove,
+func transformConfig(org string, cfg *botConfig) plugins.Approve {
+	return plugins.Approve{
+		Repos:               []string{org},
+		RequireSelfApproval: &cfg.RequireSelfApproval,
+		IgnoreReviewState:   &cfg.ignoreReviewState,
 	}
 }

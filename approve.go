@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	sdk "github.com/opensourceways/go-gitee/gitee"
+	"github.com/opensourceways/repo-owners-cache/repoowners"
 	"github.com/sirupsen/logrus"
 	"k8s.io/test-infra/prow/github"
 
@@ -18,23 +19,40 @@ const (
 	lgtmCommand    = "LGTM"
 )
 
+var commandReg = regexp.MustCompile(`(?m)^/([^\s]+)[\t ]*([^\n\r]*)`)
+
+func (bot *robot) loadRepoOwners(org, repo, base string) (repoowners.RepoOwner, error) {
+	return repoowners.NewRepoOwners(
+		repoowners.RepoBranch{
+			Platform: "gitee",
+			Org:      org,
+			Repo:     repo,
+			Branch:   base,
+		},
+		bot.cacheCli,
+	)
+}
+
 func (bot *robot) handle(org, repo string, pr *sdk.PullRequestHook, cfg *botConfig, log *logrus.Entry) error {
-	oc, err := bot.cacheCli.LoadRepoOwners(org, repo, pr.GetBase().GetRef())
+	targetBranch := pr.GetBase().GetRef()
+	oc, err := bot.loadRepoOwners(org, repo, targetBranch)
 	if err != nil {
 		return err
 	}
 
-	c := transformConfig(cfg)
-	ghc := newGHClient(bot.cli)
-	assignees := make([]github.User, 0, len(pr.Assignees))
+	var assignees []github.User
 
-	for _, v := range pr.Assignees {
-		assignees = append(assignees, github.User{Login: v.GetLogin()})
+	as := pr.GetAssignees()
+	if n := len(as); n > 0 {
+		assignees := make([]github.User, n)
+		for i := range as {
+			assignees[i] = github.User{Login: as[i].GetLogin()}
+		}
 	}
 
 	state := approve.NewState(
 		org, repo,
-		pr.GetBase().GetRef(),
+		targetBranch,
 		pr.GetBody(),
 		pr.GetUser().GetLogin(),
 		pr.GetHtmlURL(),
@@ -42,24 +60,19 @@ func (bot *robot) handle(org, repo string, pr *sdk.PullRequestHook, cfg *botConf
 		assignees,
 	)
 
-	return approve.Handle(log, ghc, oc, getGiteeOption(), c, state)
-}
+	c := transformConfig(org, cfg)
 
-func (bot *robot) authorIsRobot(author string) (bool, error) {
-	b, err := bot.cli.GetBot()
-	if err != nil {
-		return false, err
-	}
-
-	return b.Login == author, err
+	return approve.Handle(
+		log, &ghclient{bot.cli}, oc,
+		getGiteeOption(), &c, state,
+	)
 }
 
 func isApproveCommand(comment string, lgtmActsAsApprove bool) bool {
-	reg := regexp.MustCompile(`(?m)^/([^\s]+)[\t ]*([^\n\r]*)`)
-
-	for _, match := range reg.FindAllStringSubmatch(comment, -1) {
+	for _, match := range commandReg.FindAllStringSubmatch(comment, -1) {
 		cmd := strings.ToUpper(match[1])
-		if (cmd == lgtmCommand && lgtmActsAsApprove) || cmd == approveCommand {
+
+		if cmd == approveCommand || (cmd == lgtmCommand && lgtmActsAsApprove) {
 			return true
 		}
 	}

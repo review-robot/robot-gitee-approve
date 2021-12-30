@@ -1,12 +1,6 @@
 package main
 
-import (
-	"github.com/opensourceways/repo-owners-cache/grpc/client"
-	"github.com/opensourceways/repo-owners-cache/repoowners"
-	"k8s.io/test-infra/prow/github"
-
-	"github.com/opensourceways/robot-gitee-approve/approve/approvers"
-)
+import "k8s.io/test-infra/prow/github"
 
 type ghclient struct {
 	cli iClient
@@ -77,29 +71,4 @@ func (c *ghclient) ListReviews(org, repo string, number int) ([]github.Review, e
 
 func (c *ghclient) ListPullRequestComments(org, repo string, number int) ([]github.ReviewComment, error) {
 	return []github.ReviewComment{}, nil
-}
-
-func newGHClient(cli iClient) *ghclient {
-	return &ghclient{cli: cli}
-}
-
-type RepoOwnersClient struct {
-	cli *client.Client
-}
-
-func (ro *RepoOwnersClient) LoadRepoOwners(org, repo, base string) (approvers.Repo, error) {
-	return repoowners.NewRepoOwners(
-		repoowners.RepoBranch{
-			Platform: "gitee",
-			Org:      org,
-			Repo:     repo,
-			Branch:   base,
-		}, ro.cli,
-	)
-}
-
-func newRepoOwnersClient(cli *client.Client) *RepoOwnersClient {
-	return &RepoOwnersClient{
-		cli: cli,
-	}
 }

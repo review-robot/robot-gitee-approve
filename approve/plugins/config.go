@@ -1,3 +1,19 @@
+/*
+Copyright 2018 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package plugins
 
 import (
@@ -6,13 +22,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 )
-
-var (
-	warnImplicitSelfApprove time.Time
-	warnReviewActsAsApprove time.Time
-)
-
-var warnLock sync.RWMutex // Rare updates and concurrent readers, so reuse the same lock
 
 // Approve specifies a configuration for a single approve.
 //
@@ -43,6 +52,11 @@ type Approve struct {
 	IgnoreReviewState *bool `json:"ignore_review_state,omitempty"`
 }
 
+var (
+	warnImplicitSelfApprove time.Time
+	warnReviewActsAsApprove time.Time
+)
+
 func (a Approve) HasSelfApproval() bool {
 	if a.DeprecatedImplicitSelfApprove != nil {
 		warnDeprecated(&warnImplicitSelfApprove, 5*time.Minute, "Please update plugins.yaml to use require_self_approval instead of the deprecated implicit_self_approve before June 2019")
@@ -62,6 +76,8 @@ func (a Approve) ConsiderReviewState() bool {
 	}
 	return true
 }
+
+var warnLock sync.RWMutex // Rare updates and concurrent readers, so reuse the same lock
 
 // warnDeprecated prints a deprecation warning for a particular configuration
 // option.
