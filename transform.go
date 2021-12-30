@@ -10,35 +10,54 @@ import (
 )
 
 func transformPRChanges(changes []sdk.PullRequestFiles) []github.PullRequestChange {
-	var res []github.PullRequestChange
+	n := len(changes)
+	if n == 0 {
+		return nil
+	}
 
-	for _, v := range changes {
-		res = append(res, github.PullRequestChange{
+	res := make([]github.PullRequestChange, n)
+
+	for i := range changes {
+		v := &changes[i]
+
+		res[i] = github.PullRequestChange{
 			SHA:      v.Sha,
 			Filename: v.Filename,
 			Status:   v.Status,
-		})
+		}
 	}
 
 	return res
 }
 
 func transformLabels(labels []sdk.Label) []github.Label {
-	var res []github.Label
+	n := len(labels)
+	if n == 0 {
+		return nil
+	}
 
-	for _, v := range labels {
-		res = append(res, github.Label{
+	res := make([]github.Label, n)
+
+	for i := range labels {
+		v := &labels[i]
+
+		res[i] = github.Label{
 			URL:   v.Url,
 			Name:  v.Name,
 			Color: v.Color,
-		})
+		}
 	}
 
 	return res
 }
 
 func transformComments(comments []sdk.PullRequestComments) []github.IssueComment {
-	var res []github.IssueComment
+	n := len(comments)
+	if n == 0 {
+		return nil
+	}
+
+	res := make([]github.IssueComment, n)
 
 	parseTime := func(t string) time.Time {
 		r, _ := time.Parse(time.RFC3339, t)
@@ -46,15 +65,17 @@ func transformComments(comments []sdk.PullRequestComments) []github.IssueComment
 		return r
 	}
 
-	for _, v := range comments {
-		res = append(res, github.IssueComment{
+	for i := range comments {
+		v := &comments[i]
+
+		res[i] = github.IssueComment{
 			ID:        int(v.Id),
 			Body:      v.Body,
 			User:      transformUser(v.User),
 			HTMLURL:   v.HtmlUrl,
 			CreatedAt: parseTime(v.CreatedAt),
 			UpdatedAt: parseTime(v.UpdatedAt),
-		})
+		}
 	}
 
 	return res
