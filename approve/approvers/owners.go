@@ -28,6 +28,7 @@ import (
 	"text/template"
 
 	"github.com/sirupsen/logrus"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -37,10 +38,7 @@ const (
 	ApprovalNotificationName = "ApprovalNotifier"
 )
 
-type RepoOwners interface {
-	LoadRepoOwners(org, repo, base string) (Repo, error)
-}
-
+// Repo allows querying and interacting with OWNERS information in a repo.
 type Repo interface {
 	Approvers(path string) sets.String
 	LeafApprovers(path string) sets.String

@@ -8,8 +8,6 @@ import (
 	sdk "github.com/opensourceways/go-gitee/gitee"
 	"github.com/opensourceways/repo-owners-cache/grpc/client"
 	"github.com/sirupsen/logrus"
-
-	"github.com/opensourceways/robot-gitee-approve/approve/approvers"
 )
 
 const botName = "approve"
@@ -25,13 +23,14 @@ type iClient interface {
 	RemovePRLabel(org, repo string, number int32, label string) error
 }
 
-func newRobot(cli iClient, cacheCli *client.Client) *robot {
-	return &robot{cli: cli, cacheCli: newRepoOwnersClient(cacheCli)}
+func newRobot(cli iClient, cacheCli *client.Client, botName string) *robot {
+	return &robot{cli: cli, cacheCli: cacheCli, botName: botName}
 }
 
 type robot struct {
+	cacheCli *client.Client
 	cli      iClient
-	cacheCli approvers.RepoOwners
+	botName  string
 }
 
 func (bot *robot) NewConfig() config.Config {
@@ -57,12 +56,12 @@ func (bot *robot) RegisterEventHandler(f framework.HandlerRegitster) {
 }
 
 func (bot *robot) handlePREvent(e *sdk.PullRequestEvent, c config.Config, log *logrus.Entry) error {
-	action := e.GetAction()
-	if !(action == sdk.PRActionOpened || action == sdk.PRActionChangedSourceBranch) {
+	action := sdk.GetPullRequestAction(e)
+	if !(action == sdk.ActionOpen || action == sdk.PRActionChangedSourceBranch) {
 		return nil
 	}
 
-	org, repo := e.GetProject().GetOwnerAndRepo()
+	org, repo := e.GetOrgRepo()
 
 	cfg, err := bot.getConfig(c, org, repo)
 	if err != nil {
@@ -84,12 +83,7 @@ func (bot *robot) handleNoteEvent(e *sdk.NoteEvent, c config.Config, log *logrus
 		return err
 	}
 
-	b, err := bot.authorIsRobot(e.GetCommenter())
-	if err != nil {
-		return err
-	}
-
-	if b || !isApproveCommand(e.GetComment().GetBody(), cfg.LgtmActsAsApprove) {
+	if bot.botName == e.GetCommenter() || !isApproveCommand(e.GetComment().GetBody(), false) {
 		return nil
 	}
 
